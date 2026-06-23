@@ -28,7 +28,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppText } from '@/components/AppText';
-import { resolveAssetPlace } from '@/lib/media';
+import { peekAssetPlace, resolveAssetPlace } from '@/lib/media';
 import { Radius, Spacing, cardShadow } from '@/theme/tokens';
 import { useColors } from '@/theme/useColors';
 
@@ -88,12 +88,21 @@ function formatTime(ms?: number) {
   }
 }
 
-/** Resolves a Photos-style place name for an asset, refreshing when the asset changes. */
+/**
+ * Place name for an asset. Reads the resolved value straight from the cache so a place that was
+ * primed ahead of time (see the window prefetch in SwipeDeck) shows immediately — no flicker.
+ * Falls back to resolving on the spot only if it wasn't primed yet.
+ */
 function usePlace(asset: Asset | null): string | undefined {
-  const [place, setPlace] = useState<string>();
+  const [place, setPlace] = useState<string | undefined>(() =>
+    asset ? peekAssetPlace(asset.id) : undefined,
+  );
   useEffect(() => {
-    setPlace(undefined);
-    if (!asset) return;
+    if (!asset) {
+      setPlace(undefined);
+      return;
+    }
+    setPlace(peekAssetPlace(asset.id));
     let active = true;
     resolveAssetPlace(asset.id).then((p) => {
       if (active) setPlace(p);
@@ -504,6 +513,13 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
   useEffect(() => {
     const ahead = assets.slice(index, index + VISIBLE + 4).map((a) => a.uri);
     if (ahead.length) Image.prefetch(ahead, 'memory-disk');
+  }, [index, assets]);
+
+  // Resolve location for the whole visible window (and the buffer) ahead of time, so each
+  // photo's place is already cached before it reaches the front — no pop-in when it does.
+  // Advancing one card resolves the newly-entered card; results are cached in resolveAssetPlace.
+  useEffect(() => {
+    assets.slice(index, index + VISIBLE + 1).forEach((a) => resolveAssetPlace(a.id));
   }, [index, assets]);
 
   return (

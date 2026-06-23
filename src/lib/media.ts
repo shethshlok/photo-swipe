@@ -75,6 +75,15 @@ export async function loadAlbums(limited = false): Promise<AlbumSummary[]> {
 // means "resolved, but no location" — distinct from "not yet resolved" (absent key).
 const placeCache = new Map<string, string | null>();
 
+/**
+ * Synchronously returns an already-resolved place name (or undefined if the photo has no
+ * location, or hasn't been resolved yet). Lets the UI render a known place immediately —
+ * without the async undefined→value flash — once resolveAssetPlace has primed the cache.
+ */
+export function peekAssetPlace(assetId: string): string | undefined {
+  return placeCache.get(assetId) ?? undefined;
+}
+
 type Coords = { latitude: number; longitude: number };
 
 /**
