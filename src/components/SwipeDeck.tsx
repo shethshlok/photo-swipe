@@ -372,8 +372,19 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
     };
   });
 
-  const window = assets.slice(index, index + VISIBLE);
+  // Render one extra card beyond the visible depths. The buffer card sits directly behind the
+  // bottom visible card (same transform) so it's fully occluded — meaning the next card to
+  // appear was already mounted and decoded a swipe earlier, never popping/flashing into view.
+  const window = assets.slice(index, index + VISIBLE + 1);
   const topPlace = usePlace(window[0] ?? null);
+
+  // Preload upcoming photos into the memory cache so a card never mounts with an undecoded
+  // image — that blank-frame-then-image pop (showing the card background for a frame) is the
+  // swipe flicker. Prefetch a few ahead of what's visible so they're ready before they mount.
+  useEffect(() => {
+    const ahead = assets.slice(index, index + VISIBLE + 4).map((a) => a.uri);
+    if (ahead.length) Image.prefetch(ahead, 'memory-disk');
+  }, [index, assets]);
 
   return (
     <View style={styles.deck}>
@@ -388,8 +399,10 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
             .reverse()
             .map(({ asset, depth }) => {
               const isTop = depth === 0;
+              // depth 2 (bottom visible) and depth 3 (occluded buffer) share a transform, so the
+              // buffer is hidden directly behind it and slides into view seamlessly on advance.
               const depthStyle =
-                depth === 1 ? secondCardStyle : depth === 2 ? thirdCardStyle : undefined;
+                depth === 1 ? secondCardStyle : depth >= 2 ? thirdCardStyle : undefined;
 
               return (
                 <Animated.View
