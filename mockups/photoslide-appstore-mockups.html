@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Photoslide — App Store Mockups</title>
+<style>
+  /* ===========================================================================
+     Photoslide — App Store screenshot mockups
+     Faithfully recreates the real screens using the app's design tokens
+     (src/theme/tokens.ts): iOS semantic palette, type ramp, spacing, radii.
+     Each panel renders at iPhone 6.7" points (430 x 932) and can be exported
+     to a 1290 x 2796 App Store screenshot by capturing the .panel at 3x.
+     =========================================================================== */
+
+  :root {
+    /* Light palette (Colors.light) */
+    --bg: #FFFFFF;
+    --bgGrouped: #F2F2F7;
+    --card: #FFFFFF;
+    --text: #000000;
+    --textSecondary: rgba(60,60,67,0.6);
+    --textTertiary: rgba(60,60,67,0.3);
+    --separator: rgba(60,60,67,0.18);
+    --tint: #007AFF;
+    --keep: #34C759;
+    --delete: #FF3B30;
+
+    /* Dark palette (Colors.dark) */
+    --d-bg: #000000;
+    --d-card: #1C1C1E;
+    --d-cardElevated: #2C2C2E;
+    --d-text: #FFFFFF;
+    --d-textSecondary: rgba(235,235,245,0.6);
+    --d-textTertiary: rgba(235,235,245,0.3);
+    --d-separator: rgba(84,84,88,0.65);
+    --d-tint: #0A84FF;
+    --d-keep: #30D158;
+    --d-delete: #FF453A;
+
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+    --rounded: "SF Pro Rounded", ui-rounded, -apple-system, system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: #0c0c10;
+    color: #fff;
+    padding: 60px 0 100px;
+  }
+
+  .intro {
+    max-width: 980px; margin: 0 auto 56px; padding: 0 32px; text-align: center;
+  }
+  .intro h1 { font-family: var(--rounded); font-size: 40px; margin: 0 0 12px; letter-spacing: -0.5px; }
+  .intro p { color: #9aa0aa; font-size: 16px; line-height: 1.55; margin: 6px 0; }
+  .intro .pill {
+    display: inline-block; margin-top: 18px; padding: 8px 16px; border-radius: 999px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+    font-size: 13px; color: #c7ccd4;
+  }
+
+  /* ---- Strip of App Store screenshots ---- */
+  .strip {
+    display: flex; gap: 40px; overflow-x: auto; padding: 24px 60px 48px;
+    scroll-snap-type: x mandatory;
+  }
+  .shot { scroll-snap-align: center; flex: 0 0 auto; }
+
+  /* Marketing frame: gradient background card with caption + device */
+  .frame {
+    width: 484px; height: 1180px; border-radius: 44px; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 52px 27px 0; position: relative;
+  }
+  .caption { text-align: center; margin-bottom: 30px; z-index: 2; }
+  .caption .h { font-family: var(--rounded); font-size: 33px; font-weight: 800; line-height: 1.12; letter-spacing: -0.6px; margin: 0; }
+  .caption .s { font-size: 16px; font-weight: 500; line-height: 1.4; margin: 12px 6px 0; opacity: 0.78; }
+
+  /* Theme accents per frame */
+  .f-blue   { background: linear-gradient(165deg,#0a84ff 0%,#0048b3 100%); color:#fff; }
+  .f-green  { background: linear-gradient(165deg,#34c759 0%,#11883a 100%); color:#fff; }
+  .f-red    { background: linear-gradient(165deg,#ff5d52 0%,#c41d14 100%); color:#fff; }
+  .f-ink    { background: linear-gradient(165deg,#2a2a32 0%,#0a0a0f 100%); color:#fff; }
+  .f-violet { background: linear-gradient(165deg,#7b6cff 0%,#3a2bb8 100%); color:#fff; }
+  .f-teal   { background: linear-gradient(165deg,#30c8d6 0%,#0a7d8c 100%); color:#fff; }
+
+  /* ---- iPhone device (complete) ---- */
+  .device {
+    width: 430px; height: 912px; /* full 6.7" device incl. bezels */
+    border-radius: 60px;
+    background: #0a0a0a;
+    padding: 13px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06);
+    position: relative;
+  }
+  .screen {
+    width: 100%; height: 100%;
+    border-radius: 48px;
+    overflow: hidden; position: relative;
+    background: var(--bg);
+  }
+  .screen.dark { background: var(--d-bg); }
+
+  /* Home indicator */
+  .homebar {
+    position: absolute; bottom: 9px; left: 50%; transform: translateX(-50%);
+    width: 140px; height: 5px; border-radius: 3px; background: #000; opacity: 0.85; z-index: 60;
+  }
+  .screen.dark .homebar { background: #fff; opacity: 0.9; }
+
+  /* Dynamic Island */
+  .island {
+    position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 34px; background: #000; border-radius: 20px; z-index: 50;
+  }
+
+  /* Status bar */
+  .status {
+    height: 54px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 30px 6px; font-weight: 600; font-size: 15px; position: relative; z-index: 40;
+  }
+  .status .icons { display: flex; align-items: center; gap: 7px; }
+  .status svg { display: block; }
+
+  /* ===== Generic app primitives ===== */
+  .pad { padding: 0 20px; }
+  .row { display: flex; align-items: center; }
+  .grow { flex: 1; }
+  .kicker { font-family: var(--rounded); font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--tint); }
+  .largeTitle { font-family: var(--rounded); font-size: 34px; font-weight: 700; letter-spacing: 0.37px; color: var(--text); line-height: 1.05; }
+  .subhead { font-size: 15px; color: var(--textSecondary); }
+  .headline { font-size: 17px; font-weight: 600; letter-spacing: -0.43px; color: var(--text); }
+  .footnote { font-size: 13px; color: var(--textSecondary); }
+  .caption2 { font-size: 12px; font-weight: 500; }
+
+  .dark .largeTitle, .dark .headline { color: var(--d-text); }
+  .dark .subhead, .dark .footnote { color: var(--d-textSecondary); }
+  .dark .kicker { color: var(--d-tint); }
+
+  /* Trash pill (top-right) */
+  .trashPill {
+    width: 46px; height: 46px; border-radius: 23px; background: var(--bgGrouped);
+    display: flex; align-items: center; justify-content: center; position: relative;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.10);
+  }
+  .dark .trashPill { background: var(--d-card); box-shadow: none; }
+  .badge {
+    position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; border-radius: 10px;
+    background: var(--delete); color: #fff; font-size: 12px; font-weight: 600; padding: 0 5px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Stat cards */
+  .stats { display: flex; gap: 12px; margin-top: 18px; }
+  .stat { flex: 1; background: var(--bgGrouped); border-radius: 20px; padding: 18px 8px;
+          display: flex; flex-direction: column; align-items: center; gap: 2px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
+  .dark .stat { background: var(--d-card); box-shadow: none; }
+  .statIcon { width: 40px; height: 40px; border-radius: 20px; display:flex; align-items:center; justify-content:center; margin-bottom: 4px; }
+  .statNum { font-family: var(--rounded); font-size: 22px; font-weight: 700; color: var(--text); }
+  .dark .statNum { color: var(--d-text); }
+
+  /* Album grid */
+  .albumGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+  .tile { aspect-ratio: 0.82; border-radius: 20px; overflow: hidden; position: relative; background:#ddd; }
+  .tile img { width:100%; height:100%; object-fit: cover; display:block; }
+  .tile .scrim { position:absolute; inset:0; background: linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.75)); }
+  .tile .meta { position:absolute; left:12px; right:12px; bottom:12px; color:#fff; }
+  .tile .meta .t { font-size:17px; font-weight:600; }
+  .tile .meta .c { font-size:13px; color: rgba(255,255,255,0.82); }
+  .chip {
+    position:absolute; top:8px; left:8px; display:flex; align-items:center; gap:3px;
+    background: var(--tint); color:#fff; font-size:12px; font-weight:600;
+    padding:3px 8px; border-radius:999px;
+  }
+
+  /* ===== Swipe screen ===== */
+  .swHeader { display:flex; align-items:center; gap:12px; padding: 4px 16px 8px; }
+  .iconBtn { width:42px; height:42px; border-radius:21px; background: var(--bgGrouped); display:flex; align-items:center; justify-content:center; }
+  .dark .iconBtn { background: var(--d-card); }
+  .swTitle { flex:1; text-align:center; }
+  .progressTrack { height:4px; border-radius:2px; background: var(--bgGrouped); margin: 0 20px; overflow:hidden; }
+  .dark .progressTrack { background: var(--d-card); }
+  .progressFill { height:100%; background: var(--tint); border-radius:2px; }
+
+  .deck { position: relative; margin: 16px 12px 0; height: 470px; }
+  .dcard { position:absolute; inset:0; border-radius:32px; overflow:hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); background:#000; }
+  .dcard.behind1 { transform: scale(0.94) translateY(14px); }
+  .dcard.behind2 { transform: scale(0.88) translateY(28px); }
+  .dcard img { width:100%; height:100%; object-fit: cover; display:block; }
+  .dcard .blurfill { position:absolute; inset:0; }
+  .dcard .blurfill img { filter: blur(40px); transform: scale(1.2); }
+  .dcard .tint { position:absolute; inset:0; background: rgba(0,0,0,0.28); }
+  .dcard .photo { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .dcard .photo img { width:100%; height:100%; object-fit: contain; }
+  .topScrim { position:absolute; left:0; right:0; top:0; height:26%; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent); }
+  .botScrim { position:absolute; left:0; right:0; bottom:0; height:40%; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent 55%); }
+  .tagRow { position:absolute; left:16px; right:16px; display:flex; flex-wrap:wrap; gap:4px; justify-content:center; }
+  .tagRow.top { top:16px; }
+  .tagRow.bottom { bottom:20px; }
+  .tag { display:flex; align-items:center; gap:5px; padding:5px 9px; border-radius:999px;
+         background: rgba(255,255,255,0.18); color:#fff; font-size:12px; font-weight:500; }
+
+  .swBadge { position:absolute; top:24px; padding:4px 12px; border:4px solid; border-radius:14px;
+             background: rgba(255,255,255,0.16); font-family: var(--rounded); font-size:22px; font-weight:700; }
+  .swBadge.keep { left:20px; transform: rotate(-16deg); border-color: var(--keep); color: var(--keep); }
+  .swBadge.del  { right:20px; transform: rotate(16deg); border-color: var(--delete); color: var(--delete); }
+  .swBadge.later { top:72px; left:50%; transform: translateX(-50%); border-color: var(--tint); color: var(--tint); }
+
+  /* Action bar (GlassBar) */
+  .actions {
+    position:absolute; left:20px; right:20px; bottom:26px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding: 14px 20px; border-radius:999px;
+    background: rgba(255,255,255,0.72); backdrop-filter: blur(20px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.5);
+  }
+  .dark .actions { background: rgba(28,28,30,0.72); border:1px solid rgba(255,255,255,0.08); }
+  .ab { border-radius:999px; display:flex; align-items:center; justify-content:center; background: var(--bgGrouped); }
+  .dark .ab { background: var(--d-cardElevated); }
+  .ab.sm { width:48px; height:48px; }
+  .ab.md { width:56px; height:56px; background:#fff; box-shadow:0 4px 10px rgba(0,0,0,0.12); border:1px solid var(--separator); }
+  .ab.lg { width:68px; height:68px; background:#fff; box-shadow:0 4px 10px rgba(0,0,0,0.12); border:1px solid var(--separator); }
+  .dark .ab.md, .dark .ab.lg { background: var(--d-card); border:1px solid var(--d-separator); box-shadow:none; }
+
+  /* ===== Trash grid ===== */
+  .note { display:flex; align-items:center; gap:8px; background: var(--bgGrouped); border-radius:14px; padding:12px; margin: 8px 16px 12px; }
+  .dark .note { background: var(--d-card); }
+  .note .footnote { flex:1; }
+  .tgrid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:3px; padding: 0 16px; }
+  .tcell { aspect-ratio:1; border-radius:10px; overflow:hidden; position:relative; background:#ccc; }
+  .tcell img { width:100%; height:100%; object-fit:cover; display:block; }
+  .tcell .dim { position:absolute; inset:0; background: rgba(0,0,0,0.45); }
+  .tcheck { position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:12px;
+            border:1.5px solid; display:flex; align-items:center; justify-content:center; }
+  .tcheck.on { background: var(--tint); border-color:#fff; }
+  .tcheck.off { background: rgba(0,0,0,0.25); border-color: rgba(255,255,255,0.9); }
+  .trashActions {
+    position:absolute; left:20px; right:20px; bottom:26px; display:flex; gap:12px;
+    padding:12px; border-radius:999px;
+    background: rgba(255,255,255,0.72); backdrop-filter: blur(20px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.5);
+  }
+  .dark .trashActions { background: rgba(28,28,30,0.72); border:1px solid rgba(255,255,255,0.08); }
+  .taBtn { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:14px 0; border-radius:999px; font-size:17px; font-weight:600; }
+  .taBtn.keep { background: var(--bgGrouped); color: var(--text); }
+  .dark .taBtn.keep { background: var(--d-cardElevated); color: var(--d-text); }
+  .taBtn.del { background: var(--delete); color:#fff; }
+  .tHeader { display:flex; align-items:center; padding: 4px 16px 10px; }
+  .tHeader .side { width:80px; }
+  .tHeader .mid { flex:1; text-align:center; }
+
+  /* ===== Permission / privacy gate ===== */
+  .gate { display:flex; flex-direction:column; align-items:center; text-align:center; padding: 90px 30px 0; }
+  .gateIcon { width:112px; height:112px; border-radius:56px; background: var(--bgGrouped); display:flex; align-items:center; justify-content:center; margin-bottom:24px; }
+  .dark .gateIcon { background: var(--d-card); }
+  .gateTitle { font-family: var(--rounded); font-size:28px; font-weight:700; color: var(--text); }
+  .dark .gateTitle { color: var(--d-text); }
+  .gateBody { font-size:17px; color: var(--textSecondary); line-height:1.45; margin-top:10px; }
+  .dark .gateBody { color: var(--d-textSecondary); }
+  .gateBtn { margin-top:30px; background: var(--tint); color:#fff; font-size:17px; font-weight:600; padding:16px 40px; border-radius:999px; }
+  .privacyList { margin-top:34px; width:100%; display:flex; flex-direction:column; gap:14px; text-align:left; }
+  .pItem { display:flex; gap:12px; align-items:flex-start; }
+  .pItem .pIco { width:34px; height:34px; border-radius:17px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+  .pItem .pt { font-size:16px; font-weight:600; color:var(--text); }
+  .dark .pItem .pt { color: var(--d-text); }
+  .pItem .pd { font-size:13px; color: var(--textSecondary); margin-top:1px; }
+  .dark .pItem .pd { color: var(--d-textSecondary); }
+
+  /* ===== All caught up ===== */
+  .done { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; padding:0 30px; }
+  .doneIcon { width:128px; height:128px; border-radius:64px; background: var(--bgGrouped); display:flex; align-items:center; justify-content:center; margin-bottom:24px; }
+  .dark .doneIcon { background: var(--d-card); }
+  .doneTitle { font-family: var(--rounded); font-size:28px; font-weight:700; color:var(--text); }
+  .dark .doneTitle { color: var(--d-text); }
+  .doneBody { font-size:17px; color: var(--textSecondary); margin-top:6px; line-height:1.4; }
+  .dark .doneBody { color: var(--d-textSecondary); }
+  .primaryBtn { margin-top:30px; display:flex; align-items:center; gap:8px; background: var(--delete); color:#fff; font-size:17px; font-weight:600; padding:16px 28px; border-radius:999px; }
+  .secondaryBtn { margin-top:12px; background: var(--bgGrouped); color:var(--text); font-size:17px; font-weight:600; padding:16px 28px; border-radius:999px; }
+  .dark .secondaryBtn { background: var(--d-card); color: var(--d-text); }
+
+  .footer { text-align:center; color:#7c828c; font-size:13px; margin-top:30px; }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <h1>Photoslide — App Store Mockups</h1>
+    <p>Six marketing screenshots recreated from the live app (real palette, type ramp, layout & components).</p>
+    <p>Scroll the strip horizontally. Each frame is sized to the iPhone 6.7" canvas for clean export.</p>
+    <span class="pill">Mockups only · not submitted to the App Store</span>
+  </div>
+
+  <div class="strip">
+
+    <!-- ============================ 1 · ALBUMS / HOME ============================ -->
+    <div class="shot">
+      <div class="frame f-blue">
+        <div class="caption">
+          <p class="h">Clean up your camera roll,<br>one swipe at a time</p>
+          <p class="s">Every album, every photo — in a deck you can fly through.</p>
+        </div>
+        <div class="device">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="homebar"></div>
+            <div class="status">
+              <span>9:41</span>
+              <span class="icons">
+                <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></g></svg>
+                <svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M8.5 2.5C11 2.5 13.2 3.5 14.8 5.1L8.5 11.5 2.2 5.1C3.8 3.5 6 2.5 8.5 2.5Z" fill="#000" opacity="0.95"/></svg>
+                <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#000" opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="#000"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#000" opacity="0.4"/></svg>
+              </span>
+            </div>
+
+            <div class="pad" style="padding-top:8px;">
+              <div class="row" style="align-items:flex-start;">
+                <div class="grow">
+                  <div class="kicker">PHOTOSLIDE</div>
+                  <div class="largeTitle">Albums</div>
+                </div>
+                <div class="trashPill" style="margin-top:14px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF3B30"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9z"/></svg>
+                  <span class="badge">12</span>
+                </div>
+              </div>
+              <div class="subhead" style="margin-top:2px;">Swipe right to keep, left to stage for deletion.</div>
+
+              <div class="stats">
+                <div class="stat">
+                  <div class="statIcon" style="background:rgba(52,199,89,0.12);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#34C759"><path d="M12 2l2.4 1.8 3 .1 1 2.8 2.4 1.6-.9 2.9.9 2.9-2.4 1.6-1 2.8-3 .1L12 22l-2.4-1.8-3-.1-1-2.8L3.2 15l.9-2.9-.9-2.9 2.4-1.6 1-2.8 3-.1L12 2z"/><path d="M10.6 14.6l-2.1-2.1-1.3 1.3 3.4 3.4 6-6-1.3-1.3z" fill="#fff"/></svg>
+                  </div>
+                  <div class="statNum">1,284</div>
+                  <div class="footnote">Photos cleared</div>
+                </div>
+                <div class="stat">
+                  <div class="statIcon" style="background:rgba(0,122,255,0.12);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#007AFF"><rect x="2" y="5" width="20" height="14" rx="3"/><circle cx="17.5" cy="12" r="1.6" fill="#fff"/></svg>
+                  </div>
+                  <div class="statNum">6.2 GB</div>
+                  <div class="footnote">Space freed</div>
+                </div>
+              </div>
+
+              <div class="albumGrid">
+                <div class="tile">
+                  <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=70" alt="">
+                  <div class="scrim"></div>
+                  <div class="chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 10h4v2h-6V6h2z"/></svg>All</div>
+                  <div class="meta"><div class="t">All Photos</div><div class="c">8,412 photos</div></div>
+                </div>
+                <div class="tile">
+                  <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500&q=70" alt="">
+                  <div class="scrim"></div>
+                  <div class="meta"><div class="t">Favorites</div><div class="c">236 photos</div></div>
+                </div>
+                <div class="tile">
+                  <img src="https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=500&q=70" alt="">
+                  <div class="scrim"></div>
+                  <div class="meta"><div class="t">Screenshots</div><div class="c">1,902 photos</div></div>
+                </div>
+                <div class="tile">
+                  <img src="https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=500&q=70" alt="">
+                  <div class="scrim"></div>
+                  <div class="meta"><div class="t">Pets</div><div class="c">418 photos</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ 2 · SWIPE (neutral) ============================ -->
+    <div class="shot">
+      <div class="frame f-violet">
+        <div class="caption">
+          <p class="h">Keep what you love.<br>Swipe away the rest.</p>
+          <p class="s">Right to keep · left to clear · up to revisit later.</p>
+        </div>
+        <div class="device">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="homebar"></div>
+            <div class="status">
+              <span>9:41</span>
+              <span class="icons">
+                <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></g></svg>
+                <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.5C11 2.5 13.2 3.5 14.8 5.1L8.5 11.5 2.2 5.1C3.8 3.5 6 2.5 8.5 2.5Z" fill="#000" opacity="0.95"/></svg>
+                <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#000" opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="#000"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#000" opacity="0.4"/></svg>
+              </span>
+            </div>
+
+            <div class="swHeader">
+              <div class="iconBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3c3c43" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+              <div class="swTitle">
+                <div class="headline" style="font-family:var(--rounded);">All Photos</div>
+                <div class="caption2" style="color:var(--textSecondary);">7,128 to review</div>
+              </div>
+              <div class="trashPill" style="width:42px;height:42px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF3B30"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9z"/></svg>
+                <span class="badge">12</span>
+              </div>
+            </div>
+            <div class="progressTrack"><div class="progressFill" style="width:18%;"></div></div>
+
+            <div class="deck">
+              <div class="dcard behind2"><img src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=600&q=70" alt=""></div>
+              <div class="dcard behind1"><img src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&q=70" alt=""></div>
+              <div class="dcard">
+                <div class="blurfill"><img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&q=70" alt=""></div>
+                <div class="tint"></div>
+                <div class="photo"><img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=700&q=75" alt=""></div>
+                <div class="topScrim"></div>
+                <div class="tagRow top">
+                  <div class="tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>Yosemite Valley</div>
+                </div>
+                <div class="botScrim"></div>
+                <div class="tagRow bottom">
+                  <div class="tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="5" width="18" height="16" rx="2"/><rect x="3" y="5" width="18" height="4" fill="#fff"/><path d="M7 2v4M17 2v4" stroke="#fff" stroke-width="2"/></svg>Aug 14, 2025</div>
+                  <div class="tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>6:43 PM</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <div class="ab sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a8a8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 015 5v1"/></svg></div>
+              <div class="ab lg"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+              <div class="ab md"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+              <div class="ab lg"><svg width="28" height="28" viewBox="0 0 24 24" fill="#34C759"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.5 2 5 5.3 5c2 0 3.3 1.2 4.2 2.4.5.7 1.5.7 2 0C12.4 6.2 13.7 5 15.7 5 19 5 20.4 8.5 19 11.7 16.5 16.4 12 21 12 21z"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ 3 · SWIPE — DELETE in flight ============================ -->
+    <div class="shot">
+      <div class="frame f-red">
+        <div class="caption">
+          <p class="h">One swipe stages it.<br>Nothing is gone yet.</p>
+          <p class="s">Photos collect in Trash — your library is never touched until you confirm.</p>
+        </div>
+        <div class="device">
+          <div class="screen dark">
+            <div class="island"></div>
+            <div class="homebar"></div>
+            <div class="status">
+              <span style="color:#fff">9:41</span>
+              <span class="icons">
+                <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></g></svg>
+                <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.5C11 2.5 13.2 3.5 14.8 5.1L8.5 11.5 2.2 5.1C3.8 3.5 6 2.5 8.5 2.5Z" fill="#fff"/></svg>
+                <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#fff" opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="#fff"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#fff" opacity="0.4"/></svg>
+              </span>
+            </div>
+
+            <div class="swHeader">
+              <div class="iconBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ebebf5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+              <div class="swTitle">
+                <div class="headline" style="font-family:var(--rounded);color:#fff;">Screenshots</div>
+                <div class="caption2" style="color:rgba(235,235,245,0.6);">1,640 to review</div>
+              </div>
+              <div class="trashPill" style="width:42px;height:42px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF453A"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9z"/></svg>
+                <span class="badge" style="background:#FF453A">13</span>
+              </div>
+            </div>
+            <div class="progressTrack"><div class="progressFill" style="width:42%;background:#0A84FF;"></div></div>
+
+            <div class="deck">
+              <div class="dcard behind1"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&q=70" alt=""></div>
+              <!-- top card tilted left, DELETE badge showing -->
+              <div class="dcard" style="transform: translateX(-90px) rotate(-11deg);">
+                <div class="blurfill"><img src="https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=600&q=70" alt=""></div>
+                <div class="tint"></div>
+                <div class="photo"><img src="https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=700&q=75" alt=""></div>
+                <div class="topScrim"></div>
+                <div class="botScrim"></div>
+                <div class="tagRow bottom">
+                  <div class="tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="5" width="18" height="16" rx="2"/><rect x="3" y="5" width="18" height="4" fill="#fff"/></svg>May 2, 2024</div>
+                  <div class="tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>11:08 AM</div>
+                </div>
+                <div class="swBadge del">DELETE</div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <div class="ab sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a8a8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 015 5v1"/></svg></div>
+              <div class="ab lg" style="box-shadow:0 0 0 4px rgba(255,69,58,0.35);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+              <div class="ab md"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+              <div class="ab lg"><svg width="28" height="28" viewBox="0 0 24 24" fill="#30D158"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.5 2 5 5.3 5c2 0 3.3 1.2 4.2 2.4.5.7 1.5.7 2 0C12.4 6.2 13.7 5 15.7 5 19 5 20.4 8.5 19 11.7 16.5 16.4 12 21 12 21z"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ 4 · TRASH REVIEW ============================ -->
+    <div class="shot">
+      <div class="frame f-teal">
+        <div class="caption">
+          <p class="h">Review everything<br>before it's deleted</p>
+          <p class="s">Uncheck any keepers, then delete the rest in a single tap.</p>
+        </div>
+        <div class="device">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="homebar"></div>
+            <div class="status">
+              <span>9:41</span>
+              <span class="icons">
+                <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></g></svg>
+                <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.5C11 2.5 13.2 3.5 14.8 5.1L8.5 11.5 2.2 5.1C3.8 3.5 6 2.5 8.5 2.5Z" fill="#000" opacity="0.95"/></svg>
+                <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#000" opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="#000"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#000" opacity="0.4"/></svg>
+              </span>
+            </div>
+
+            <div class="tHeader">
+              <div class="side"><svg width="30" height="30" viewBox="0 0 24 24" fill="#c7c7cc"><circle cx="12" cy="12" r="11"/><path d="M8 8l8 8M16 8l-8 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <div class="mid"><div class="headline" style="font-family:var(--rounded);">Trash</div><div class="caption2" style="color:var(--textSecondary);">13 staged</div></div>
+              <div class="side" style="text-align:right;"><span class="subhead" style="color:var(--tint);">Deselect</span></div>
+            </div>
+
+            <div class="note">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#007AFF"><path d="M12 1l9 4v6c0 5-3.8 9.4-9 11-5.2-1.6-9-6-9-11V5l9-4z"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="footnote">These are only staged. Nothing leaves your library until you tap Delete.</div>
+            </div>
+
+            <div class="tgrid">
+              <!-- 9 thumbs, one deselected -->
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=300&q=60"><div class="dim"></div><div class="tcheck off"></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+              <div class="tcell"><img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=300&q=60"><div class="tcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div></div>
+            </div>
+
+            <div class="trashActions">
+              <div class="taBtn keep"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 015 5v1"/></svg>Keep 1</div>
+              <div class="taBtn del"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9z"/></svg>Delete 12</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ 5 · PRIVACY / PERMISSION ============================ -->
+    <div class="shot">
+      <div class="frame f-ink">
+        <div class="caption">
+          <p class="h">Private by design</p>
+          <p class="s">Everything runs on your device. No uploads, no accounts, no tracking.</p>
+        </div>
+        <div class="device">
+          <div class="screen dark">
+            <div class="island"></div>
+            <div class="homebar"></div>
+            <div class="status">
+              <span style="color:#fff">9:41</span>
+              <span class="icons">
+                <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></g></svg>
+                <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.5C11 2.5 13.2 3.5 14.8 5.1L8.5 11.5 2.2 5.1C3.8 3.5 6 2.5 8.5 2.5Z" fill="#fff"/></svg>
+                <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#fff" opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="#fff"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#fff" opacity="0.4"/></svg>
+              </span>
+            </div>
+
+            <div class="gate">
+              <div class="gateIcon">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="#0A84FF"><rect x="3" y="6" width="14" height="11" rx="2"/><rect x="6" y="3" width="14" height="11" rx="2" opacity="0.5"/></svg>
+              </div>
+              <div class="gateTitle">Access your photos</div>
+              <div class="gateBody">Photoslide needs permission to show your albums so you can swipe through them. Nothing is ever deleted or moved without your explicit confirmation.</div>
+
+              <div class="privacyList">
+                <div class="pItem">
+                  <div class="pIco" style="background:rgba(48,209,88,0.16);"><svg width="18" height="18" viewBox="0 0 24 24" fill="#30D158"><path d="M12 1l9 4v6c0 5-3.8 9.4-9 11-5.2-1.6-9-6-9-11V5l9-4z"/></svg></div>
+                  <div><div class="pt">100% on-device</div><div class="pd">Your photos never leave your iPhone.</div></div>
+                </div>
+                <div class="pItem">
+                  <div class="pIco" style="background:rgba(10,132,255,0.16);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg></div>
+                  <div><div class="pt">Confirm before deleting</div><div class="pd">Staged photos wait in Trash until you say go.</div></div>
+                </div>
+                <div class="pItem">
+                  <div class="pIco" style="background:rgba(235,235,245,0.12);"><svg width="18" height="18" viewBox="0 0 24 24" fill="#ebebf5"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0z"/><path d="M2 2l20 20" stroke="#1c1c1e" stroke-width="2.5"/></svg></div>
+                  <div><div class="pt">No account, no tracking</div><div class="pd">Open the app and start — that's it.</div></div>
+                </div>
+              </div>
+
+              <div class="gateBtn">Allow Access</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ 6 · ALL CAUGHT UP ============================ -->
+    <div class="shot">
+      <div class="frame f-green">
+        <div class="caption">
+          <p class="h">Watch the gigabytes<br>add up</p>
+          <p class="s">Finish an album, free real space, and feel the satisfaction.</p>
+        </div>
+        <div class="device">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="homebar"></div>
+            <div class="status">
+              <span>9:41</span>
+              <span class="icons">
+                <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></g></svg>
+                <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.5C11 2.5 13.2 3.5 14.8 5.1L8.5 11.5 2.2 5.1C3.8 3.5 6 2.5 8.5 2.5Z" fill="#000" opacity="0.95"/></svg>
+                <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#000" opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="#000"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#000" opacity="0.4"/></svg>
+              </span>
+            </div>
+
+            <div class="swHeader">
+              <div class="iconBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3c3c43" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+              <div class="swTitle"><div class="headline" style="font-family:var(--rounded);">Favorites</div></div>
+              <div class="trashPill" style="width:42px;height:42px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF3B30"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9z"/></svg>
+                <span class="badge">13</span>
+              </div>
+            </div>
+            <div class="progressTrack"><div class="progressFill" style="width:100%;"></div></div>
+
+            <div class="done">
+              <div class="doneIcon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="#34C759"><path d="M12 2l2.4 1.8 3 .1 1 2.8 2.4 1.6-.9 2.9.9 2.9-2.4 1.6-1 2.8-3 .1L12 22l-2.4-1.8-3-.1-1-2.8L3.2 15l.9-2.9-.9-2.9 2.4-1.6 1-2.8 3-.1L12 2z"/><path d="M10.6 14.6l-2.1-2.1-1.3 1.3 3.4 3.4 6-6-1.3-1.3z" fill="#fff"/></svg>
+              </div>
+              <div class="doneTitle">All caught up</div>
+              <div class="doneBody">You've reviewed every photo in Favorites.</div>
+              <div class="primaryBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9z"/></svg>Review Trash (13)</div>
+              <div class="secondaryBtn">Back to Albums</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">Photoslide · App Store screenshot mockups · iPhone 6.7" canvas (430×932 pt → 1290×2796 px @3×)</div>
+
+</body>
+</html>
