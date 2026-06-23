@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as MediaLibrary from 'expo-media-library/legacy';
+import * as MediaLibrary from 'expo-media-library';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,9 +16,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
+import { formatBytes } from '@/lib/format';
 import { ALL_PHOTOS_ID, AlbumSummary, loadAlbums } from '@/lib/media';
+import { useStats } from '@/store/stats';
 import { useTrash } from '@/store/trash';
-import { Radius, Spacing, cardShadow } from '@/theme/tokens';
+import { Radius, Spacing, cardShadow, withAlpha } from '@/theme/tokens';
 import { useColors } from '@/theme/useColors';
 
 const GAP = Spacing.md;
@@ -36,11 +38,11 @@ export default function AlbumsScreen() {
 
   const fetchAlbums = useCallback(async () => {
     try {
-      setAlbums(await loadAlbums());
+      setAlbums(await loadAlbums(permission?.accessPrivileges === 'limited'));
     } catch {
       setAlbums([]);
     }
-  }, []);
+  }, [permission?.accessPrivileges]);
 
   // Refresh whenever the screen regains focus (e.g. after deleting from Trash).
   useFocusEffect(
@@ -54,6 +56,15 @@ export default function AlbumsScreen() {
     await fetchAlbums();
     setRefreshing(false);
   }, [fetchAlbums]);
+
+  // Re-fetch when the user changes which photos are shared under limited access
+  // (e.g. via the "select more" picker or iOS Settings).
+  useEffect(() => {
+    const sub = MediaLibrary.addListener(() => {
+      if (permission?.granted) fetchAlbums();
+    });
+    return () => sub.remove();
+  }, [permission?.granted, fetchAlbums]);
 
   // ----- Permission gate -----
   if (!permission) {
@@ -71,8 +82,8 @@ export default function AlbumsScreen() {
           Access your photos
         </AppText>
         <AppText variant="body" color={c.textSecondary} style={[styles.center, { marginTop: 8 }]}>
-          Sweep needs permission to show your albums so you can swipe through them. Nothing is ever
-          deleted or moved without your explicit confirmation.
+          Photoslide needs permission to show your albums so you can swipe through them. Nothing is
+          ever deleted or moved without your explicit confirmation.
         </AppText>
         <Pressable
           onPress={() => (blocked ? Linking.openSettings() : requestPermission())}
@@ -146,12 +157,13 @@ function Header({
   limited: boolean;
   insetTop: number;
 }) {
+  const stats = useStats();
   return (
     <View style={{ paddingTop: insetTop + Spacing.md, paddingHorizontal: H_PAD }}>
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
           <AppText variant="footnote" color={c.tint} rounded style={{ letterSpacing: 1 }}>
-            SWEEP
+            PHOTOSLIDE
           </AppText>
           <AppText variant="largeTitle" rounded color={c.text}>
             Albums
@@ -180,10 +192,41 @@ function Header({
       <AppText
         variant="subhead"
         color={c.textSecondary}
-        style={{ marginTop: 2, marginBottom: Spacing.lg }}
+        style={{ marginTop: 2, marginBottom: Spacing.md }}
       >
         Swipe right to keep, left to stage for deletion.
       </AppText>
+
+      <View
+        style={styles.statsRow}
+        accessible
+        accessibilityLabel={`${stats.clearedPhotos} photos cleared, ${formatBytes(
+          stats.freedBytes,
+        )} of space freed`}
+      >
+        <View style={[styles.statCard, { backgroundColor: c.bgGrouped }, cardShadow(c.shadow)]}>
+          <View style={[styles.statIcon, { backgroundColor: withAlpha(c.keep, 0.12) }]}>
+            <SymbolView name="checkmark.seal.fill" size={20} tintColor={c.keep} />
+          </View>
+          <AppText variant="title2" rounded color={c.text}>
+            {stats.clearedPhotos.toLocaleString()}
+          </AppText>
+          <AppText variant="footnote" color={c.textSecondary}>
+            Photos cleared
+          </AppText>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: c.bgGrouped }, cardShadow(c.shadow)]}>
+          <View style={[styles.statIcon, { backgroundColor: withAlpha(c.tint, 0.12) }]}>
+            <SymbolView name="internaldrive.fill" size={20} tintColor={c.tint} />
+          </View>
+          <AppText variant="title2" rounded color={c.text}>
+            {formatBytes(stats.freedBytes)}
+          </AppText>
+          <AppText variant="footnote" color={c.textSecondary}>
+            Space freed
+          </AppText>
+        </View>
+      </View>
 
       {limited && (
         <Pressable
@@ -279,6 +322,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  statsRow: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.lg },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.lg,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   limitedBanner: {
     flexDirection: 'row',

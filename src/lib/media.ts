@@ -1,4 +1,5 @@
-import * as MediaLibrary from 'expo-media-library/legacy';
+import { File } from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 
 /** Sentinel album representing the whole library ("Recents"). */
 export const ALL_PHOTOS_ID = '__all_photos__';
@@ -31,16 +32,26 @@ async function coverForAlbum(albumId: string | undefined): Promise<string | unde
  * followed by user albums and smart albums that actually contain photos, each
  * with a freshly fetched cover thumbnail. Sorted by photo count, largest first.
  */
-export async function loadAlbums(): Promise<AlbumSummary[]> {
+export async function loadAlbums(limited = false): Promise<AlbumSummary[]> {
   const total = await MediaLibrary.getAssetsAsync({ first: 1, mediaType: [PHOTO] });
   const recents: AlbumSummary = {
     id: ALL_PHOTOS_ID,
-    title: 'Recents',
+    title: limited ? 'Selected Photos' : 'Recents',
     count: total.totalCount,
     coverUri: total.assets[0]?.uri,
   };
 
-  const albums = await MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true });
+  // Under iOS "limited" access, getAlbumsAsync throws ("MEDIA_LIBRARY permission is
+  // required") and album-scoped queries return nothing — the only photos we can show are
+  // the ones the user explicitly granted, which the album-less query above already returns.
+  if (limited) return [recents];
+
+  let albums: MediaLibrary.Album[];
+  try {
+    albums = await MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true });
+  } catch {
+    return [recents];
+  }
 
   const summaries = await Promise.all(
     albums.map(async (album): Promise<AlbumSummary | null> => {
@@ -83,4 +94,44 @@ export async function loadAssetsPage(
     endCursor: page.endCursor,
     hasNextPage: page.hasNextPage,
   };
+}
+
+// Rough on-disk size estimate (no native file I/O, so it stays instant). Tuned for typical
+// iPhone HEIC photos (~2.7 MB for a 12 MP image); videos fall back to a per-second rate.
+// Used only for the "space freed" cleanup stat, which the UI shows as an approximation (~).
+const PHOTO_BYTES_PER_PIXEL = 0.22;
+const VIDEO_BYTES_PER_SECOND = 3_500_000;
+const UNKNOWN_PHOTO_BYTES = 2_500_000;
+
+export function estimateAssetBytes(a: {
+  width?: number;
+  height?: number;
+  duration?: number;
+  mediaType?: string;
+}): number {
+  if (a.mediaType === 'video' && a.duration && a.duration > 0) {
+    return Math.round(a.duration * VIDEO_BYTES_PER_SECOND);
+  }
+  if (a.width && a.height) {
+    return Math.round(a.width * a.height * PHOTO_BYTES_PER_PIXEL);
+  }
+  return UNKNOWN_PHOTO_BYTES;
+}
+
+/**
+ * Real on-disk byte size of an asset, read from its local file. Returns 0 if it can't be
+ * read (e.g. an iCloud-only photo not downloaded to the device) — callers fall back to
+ * estimateAssetBytes. `shouldDownloadFromNetwork: false` keeps this fast (never fetches).
+ */
+export async function getAssetBytes(assetId: string): Promise<number> {
+  try {
+    const info = await MediaLibrary.getAssetInfoAsync(assetId, {
+      shouldDownloadFromNetwork: false,
+    });
+    if (!info.localUri) return 0;
+    const size = new File(info.localUri).size;
+    return typeof size === 'number' && size > 0 ? size : 0;
+  } catch {
+    return 0;
+  }
 }

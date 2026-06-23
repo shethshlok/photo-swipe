@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import type { Asset } from 'expo-media-library/legacy';
+import type { Asset } from 'expo-media-library';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,7 +10,7 @@ import { AppText } from '@/components/AppText';
 import { GlassBar } from '@/components/GlassBar';
 import { IconButton } from '@/components/IconButton';
 import { Decision, DeckHandle, SwipeDeck } from '@/components/SwipeDeck';
-import { AssetPage, loadAssetsPage } from '@/lib/media';
+import { AssetPage, getAssetBytes, loadAssetsPage } from '@/lib/media';
 import { toStaged, useTrash } from '@/store/trash';
 import { Radius, Spacing, cardShadow } from '@/theme/tokens';
 import { useColors } from '@/theme/useColors';
@@ -89,7 +89,13 @@ export default function SwipeScreen() {
   }, []);
 
   const onDelete = useCallback(
-    (asset: Asset) => trash.add(toStaged(asset, title)),
+    (asset: Asset) => {
+      trash.add(toStaged(asset, title));
+      // Upgrade the placeholder estimate to the real on-disk size in the background.
+      getAssetBytes(asset.id).then((bytes) => {
+        if (bytes > 0) trash.setBytes(asset.id, bytes);
+      });
+    },
     [trash, title],
   );
   const onUndoDelete = useCallback((asset: Asset) => trash.remove(asset.id), [trash]);

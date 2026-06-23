@@ -1,19 +1,18 @@
 {
   "expo": {
-    "name": "Sweep",
+    "name": "Photoslide",
     "slug": "photoslide",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "photoslide",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.photoslide.sweep",
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Sweep shows your albums so you can swipe through photos. Nothing is deleted or moved without your explicit confirmation.",
-        "NSPhotoLibraryAddUsageDescription": "Sweep needs access to your photo library to manage your photos."
+        "NSPhotoLibraryUsageDescription": "Photoslide shows your albums so you can swipe through photos. Nothing is deleted or moved without your explicit confirmation.",
+        "NSPhotoLibraryAddUsageDescription": "Photoslide needs access to your photo library to manage your photos."
       }
     },
     "android": {
@@ -34,8 +33,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Sweep shows your albums so you can swipe through photos. Nothing is deleted or moved without your explicit confirmation.",
-          "savePhotosPermission": "Sweep needs access to your photo library to manage your photos.",
+          "photosPermission": "Photoslide shows your albums so you can swipe through photos. Nothing is deleted or moved without your explicit confirmation.",
+          "savePhotosPermission": "Photoslide needs access to your photo library to manage your photos.",
           "isAccessMediaLocationEnabled": false
         }
       ],

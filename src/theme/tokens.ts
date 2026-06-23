@@ -112,3 +112,12 @@ export const cardShadow = (color: string) => ({
   shadowOffset: { width: 0, height: 4 },
   elevation: 4,
 });
+
+/** Translucent variant of a 6-digit hex color — e.g. for tinted SF Symbol backgrounds. */
+export const withAlpha = (hex: string, alpha: number) => {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};

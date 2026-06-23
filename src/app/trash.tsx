@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import * as MediaLibrary from 'expo-media-library/legacy';
+import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useMemo, useState } from 'react';
@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
 import { GlassBar } from '@/components/GlassBar';
+import { estimateAssetBytes } from '@/lib/media';
+import { useStats } from '@/store/stats';
 import { StagedAsset, useTrash } from '@/store/trash';
 import { Radius, Spacing } from '@/theme/tokens';
 import { useColors } from '@/theme/useColors';
@@ -21,6 +23,7 @@ export default function TrashScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { items, removeMany } = useTrash();
+  const stats = useStats();
 
   // Track de-selected ids so newly added photos default to selected.
   const [deselected, setDeselected] = useState<Set<string>>(new Set());
@@ -63,6 +66,11 @@ export default function TrashScreen() {
     try {
       const ok = await MediaLibrary.deleteAssetsAsync(selectedIds);
       if (ok) {
+        const selectedSet = new Set(selectedIds);
+        const freed = items
+          .filter((i) => selectedSet.has(i.id))
+          .reduce((sum, i) => sum + (i.bytes ?? estimateAssetBytes(i)), 0);
+        stats.record(selectedIds.length, freed);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         removeMany(selectedIds);
         setDeselected(new Set());
@@ -84,9 +92,11 @@ export default function TrashScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="Close">
-          <SymbolView name="xmark.circle.fill" size={30} tintColor={c.textTertiary} type="hierarchical" />
-        </Pressable>
+        <View style={styles.headerSide}>
+          <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="Close">
+            <SymbolView name="xmark.circle.fill" size={30} tintColor={c.textTertiary} type="hierarchical" />
+          </Pressable>
+        </View>
         <View style={styles.headerCenter}>
           <AppText variant="headline" rounded color={c.text}>
             Trash
@@ -95,15 +105,15 @@ export default function TrashScreen() {
             {items.length} staged
           </AppText>
         </View>
-        {items.length > 0 ? (
-          <Pressable onPress={toggleAll} hitSlop={10}>
-            <AppText variant="subhead" color={c.tint}>
-              {allSelected ? 'Deselect' : 'Select All'}
-            </AppText>
-          </Pressable>
-        ) : (
-          <View style={{ width: 64 }} />
-        )}
+        <View style={[styles.headerSide, styles.headerSideRight]}>
+          {items.length > 0 && (
+            <Pressable onPress={toggleAll} hitSlop={10}>
+              <AppText variant="subhead" color={c.tint}>
+                {allSelected ? 'Deselect' : 'Select All'}
+              </AppText>
+            </Pressable>
+          )}
+        </View>
       </View>
 
       {items.length === 0 ? (
@@ -219,11 +229,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.sm,
   },
-  headerCenter: { alignItems: 'center' },
+  headerSide: { width: 80, justifyContent: 'center' },
+  headerSideRight: { alignItems: 'flex-end' },
+  headerCenter: { flex: 1, alignItems: 'center' },
   note: {
     flexDirection: 'row',
     alignItems: 'center',

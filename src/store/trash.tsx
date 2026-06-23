@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Asset } from 'expo-media-library/legacy';
+import type { Asset } from 'expo-media-library';
+
+import { estimateAssetBytes } from '@/lib/media';
 import {
   createContext,
   useCallback,
@@ -25,6 +27,8 @@ export type StagedAsset = {
   creationTime?: number;
   duration?: number;
   albumTitle?: string;
+  /** On-disk byte size: real once resolved (see getAssetBytes), estimate as placeholder. */
+  bytes?: number;
 };
 
 const STORAGE_KEY = 'photoslide.staged.v1';
@@ -39,6 +43,7 @@ export function toStaged(asset: Asset, albumTitle?: string): StagedAsset {
     height: asset.height,
     creationTime: asset.creationTime,
     duration: asset.duration,
+    bytes: estimateAssetBytes(asset),
     albumTitle,
   };
 }
@@ -50,6 +55,7 @@ type TrashContextValue = {
   hydrated: boolean;
   has: (id: string) => boolean;
   add: (asset: StagedAsset) => void;
+  setBytes: (id: string, bytes: number) => void;
   remove: (id: string) => void;
   removeMany: (ids: string[]) => void;
   clear: () => void;
@@ -91,6 +97,10 @@ export function TrashProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => (prev.some((i) => i.id === asset.id) ? prev : [asset, ...prev]));
   }, []);
 
+  const setBytes = useCallback((id: string, bytes: number) => {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, bytes } : i)));
+  }, []);
+
   const remove = useCallback((id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
@@ -103,8 +113,8 @@ export function TrashProvider({ children }: { children: React.ReactNode }) {
   const clear = useCallback(() => setItems([]), []);
 
   const value = useMemo<TrashContextValue>(
-    () => ({ items, ids, count: items.length, hydrated, has, add, remove, removeMany, clear }),
-    [items, ids, hydrated, has, add, remove, removeMany, clear],
+    () => ({ items, ids, count: items.length, hydrated, has, add, setBytes, remove, removeMany, clear }),
+    [items, ids, hydrated, has, add, setBytes, remove, removeMany, clear],
   );
 
   return <TrashContext.Provider value={value}>{children}</TrashContext.Provider>;
