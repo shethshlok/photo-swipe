@@ -16,6 +16,7 @@ import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
+  Easing,
   Extrapolation,
   interpolate,
   runOnJS,
@@ -218,6 +219,7 @@ const DeckCard = memo(function DeckCard({
   leavingId,
   exitX,
   exitY,
+  enterScale,
 }: {
   asset: Asset;
   depth: number;
@@ -229,6 +231,7 @@ const DeckCard = memo(function DeckCard({
   leavingId: SharedValue<string>;
   exitX: SharedValue<number>;
   exitY: SharedValue<number>;
+  enterScale: SharedValue<number>;
 }) {
   const id = asset.id;
 
@@ -246,13 +249,21 @@ const DeckCard = memo(function DeckCard({
     }
     if (isTop) {
       const rotate = interpolate(tx.value, [-SCREEN_W, 0, SCREEN_W], [-11, 0, 11], Extrapolation.CLAMP);
+      // enterScale springs from the depth-1 resting scale up to 1 as this card takes front,
+      // so the next photo eases into place instead of snapping to full size.
       return {
-        transform: [{ translateX: tx.value }, { translateY: ty.value }, { rotate: `${rotate}deg` }],
+        transform: [
+          { translateX: tx.value },
+          { translateY: ty.value },
+          { rotate: `${rotate}deg` },
+          { scale: enterScale.value },
+        ],
       };
     }
-    // Cards underneath rise toward the top as the current card is dragged away.
+    // Cards underneath rise toward the top as the current card is dragged away. depth-1 stops
+    // just short of full size (0.98) so the hand-off to the top card's spring is seamless.
     const p = interpolate(Math.abs(tx.value), [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP);
-    if (depth === 1) return { transform: [{ scale: 0.94 + 0.06 * p }, { translateY: 14 - 14 * p }] };
+    if (depth === 1) return { transform: [{ scale: 0.94 + 0.04 * p }, { translateY: 14 - 14 * p }] };
     return { transform: [{ scale: 0.88 + 0.06 * p }, { translateY: 28 - 14 * p }] };
   });
 
@@ -320,6 +331,14 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
   const leavingId = useSharedValue('');
   const exitX = useSharedValue(0);
   const exitY = useSharedValue(0);
+  // Scale of the top card; springs from the depth-1 resting scale up to 1 when a new card
+  // takes front, so the incoming photo settles in smoothly rather than popping.
+  const enterScale = useSharedValue(1);
+
+  const settleTop = useCallback(() => {
+    enterScale.value = 0.98;
+    enterScale.value = withSpring(1, { damping: 16, stiffness: 170 });
+  }, [enterScale]);
 
   // Refs keep the gesture callbacks stable while always reading fresh values.
   const indexRef = useRef(0);
@@ -346,8 +365,9 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
       cb.current.onIndexChange?.(i + 1);
       tx.value = 0;
       ty.value = 0;
+      settleTop();
     },
-    [tx, ty, leavingId, exitX, exitY],
+    [tx, ty, leavingId, exitX, exitY, settleTop],
   );
 
   const fireHaptic = useCallback((dir: number) => {
@@ -367,7 +387,8 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
     history.current.push({ asset, decision: 'skip' });
     tx.value = 0;
     ty.value = 0;
-  }, [tx, ty, leavingId, exitX, exitY]);
+    settleTop();
+  }, [tx, ty, leavingId, exitX, exitY, settleTop]);
 
   const flingUp = useCallback(() => {
     cb.current.onDecision?.('skip');
@@ -385,8 +406,9 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
   const fling = useCallback(
     (dir: number, velocityY = 0) => {
       fireHaptic(dir);
-      ty.value = withTiming(ty.value + velocityY * 0.05 - 30, { duration: 240 });
-      tx.value = withTiming(dir * FLING_X, { duration: 240 }, (finished) => {
+      const easing = Easing.out(Easing.cubic);
+      ty.value = withTiming(ty.value + velocityY * 0.05 - 30, { duration: 260, easing });
+      tx.value = withTiming(dir * FLING_X, { duration: 260, easing }, (finished) => {
         if (finished) runOnJS(advance)(dir);
       });
     },
@@ -397,6 +419,7 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
     if (history.current.length === 0) return;
     const last = history.current.pop()!;
     leavingId.value = ''; // un-pin so a restored card isn't stuck off-screen
+    enterScale.value = 1;
 
     if (last.decision === 'skip') {
       // Index didn't move on skip, so restore the photo at the current top position.
@@ -418,7 +441,7 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
     ty.value = -30;
     tx.value = withSpring(0, { damping: 18, stiffness: 160 });
     ty.value = withSpring(0, { damping: 18, stiffness: 160 });
-  }, [tx, ty, leavingId]);
+  }, [tx, ty, leavingId, enterScale]);
 
   useImperativeHandle(
     ref,
@@ -505,6 +528,7 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
                 leavingId={leavingId}
                 exitX={exitX}
                 exitY={exitY}
+                enterScale={enterScale}
               />
             ))}
         </View>
