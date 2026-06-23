@@ -35,7 +35,7 @@
         {
           "photosPermission": "Photoslide shows your albums so you can swipe through photos. Nothing is deleted or moved without your explicit confirmation.",
           "savePhotosPermission": "Photoslide needs access to your photo library to manage your photos.",
-          "isAccessMediaLocationEnabled": false
+          "isAccessMediaLocationEnabled": true
         }
       ],
       [

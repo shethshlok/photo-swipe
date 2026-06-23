@@ -1,4 +1,5 @@
 import { File } from 'expo-file-system';
+import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library';
 
 /** Sentinel album representing the whole library ("Recents"). */
@@ -68,6 +69,70 @@ export async function loadAlbums(limited = false): Promise<AlbumSummary[]> {
   );
 
   return [recents, ...userAlbums];
+}
+
+// Reverse-geocoded place names cached per asset id so the deck never refetches. `null`
+// means "resolved, but no location" — distinct from "not yet resolved" (absent key).
+const placeCache = new Map<string, string | null>();
+
+type Coords = { latitude: number; longitude: number };
+
+/**
+ * Pulls GPS coordinates out of an asset's metadata. Prefers the normalized `location` field,
+ * then falls back to the EXIF GPS block (iOS exposes it under "{GPS}", which `location`
+ * occasionally misses for imported/edited photos).
+ */
+function coordsFromInfo(info: MediaLibrary.AssetInfo): Coords | undefined {
+  const loc = info.location;
+  if (loc && Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude)) return loc;
+
+  const exif = info.exif as Record<string, any> | undefined;
+  const gps = exif?.['{GPS}'] ?? exif;
+  if (!gps) return undefined;
+  const lat = Number(gps.Latitude ?? gps.GPSLatitude);
+  const lon = Number(gps.Longitude ?? gps.GPSLongitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) return undefined;
+  const latRef = gps.LatitudeRef ?? gps.GPSLatitudeRef;
+  const lonRef = gps.LongitudeRef ?? gps.GPSLongitudeRef;
+  return {
+    latitude: latRef === 'S' ? -Math.abs(lat) : lat,
+    longitude: lonRef === 'W' ? -Math.abs(lon) : lon,
+  };
+}
+
+/**
+ * Resolves an iPhone Photos-style place name ("City, Region") for an asset from its EXIF GPS,
+ * or undefined if the photo has no location / it can't be resolved. Cached per asset id.
+ * Uses only the OS geocoder on coordinates already embedded in the photo — it never reads the
+ * device's location, so it does not require (or request) location permission.
+ */
+export async function resolveAssetPlace(assetId: string): Promise<string | undefined> {
+  const cached = placeCache.get(assetId);
+  if (cached !== undefined) return cached ?? undefined;
+  try {
+    const info = await MediaLibrary.getAssetInfoAsync(assetId, {
+      shouldDownloadFromNetwork: false,
+    });
+    const coords = coordsFromInfo(info);
+    if (!coords) {
+      placeCache.set(assetId, null);
+      return undefined;
+    }
+    const [place] = await Location.reverseGeocodeAsync(coords);
+    const label = place
+      ? [
+          place.city || place.subregion || place.district || place.name,
+          place.region || place.country,
+        ]
+          .filter(Boolean)
+          .join(', ')
+      : '';
+    const result = label || null;
+    placeCache.set(assetId, result);
+    return result ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export type AssetPage = {

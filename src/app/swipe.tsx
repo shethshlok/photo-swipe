@@ -85,7 +85,25 @@ export default function SwipeScreen() {
 
   const onDecision = useCallback((d: Decision) => {
     if (d === 'keep') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    else if (d === 'skip') Haptics.selectionAsync();
     else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  }, []);
+
+  // Defer: move the photo to the back of the queue so it resurfaces later.
+  const onSkip = useCallback((asset: Asset) => {
+    setAssets((prev) => {
+      if (!prev) return prev;
+      const rest = prev.filter((a) => a.id !== asset.id);
+      return [...rest, asset];
+    });
+  }, []);
+  const onUndoSkip = useCallback((asset: Asset, at: number) => {
+    setAssets((prev) => {
+      if (!prev) return prev;
+      const rest = prev.filter((a) => a.id !== asset.id);
+      rest.splice(Math.min(at, rest.length), 0, asset);
+      return rest;
+    });
   }, []);
 
   const onDelete = useCallback(
@@ -177,6 +195,8 @@ export default function SwipeScreen() {
               onKeep={() => {}}
               onDelete={onDelete}
               onUndoDelete={onUndoDelete}
+              onSkip={onSkip}
+              onUndoSkip={onUndoSkip}
               onDecision={onDecision}
               onIndexChange={setIndex}
             />
@@ -185,20 +205,22 @@ export default function SwipeScreen() {
           {/* Action bar */}
           <View style={[styles.actionsWrap, { paddingBottom: insets.bottom + Spacing.md }]}>
             <GlassBar style={styles.actionsBar} tintColor={c.card}>
+              {/* Utility */}
               <IconButton
                 name="arrow.uturn.backward"
                 onPress={() => deckRef.current?.undo()}
-                size={52}
-                iconSize={20}
+                size={48}
+                iconSize={18}
                 background={c.bgGrouped}
                 color={c.textSecondary}
                 accessibilityLabel="Undo last swipe"
               />
+              {/* Primary trio, laid out to match the swipe directions: ✕ left, ↑ up, ♥ right */}
               <IconButton
                 name="xmark"
                 onPress={() => deckRef.current?.swipeDelete()}
-                size={72}
-                iconSize={30}
+                size={68}
+                iconSize={28}
                 background={c.card}
                 color={c.delete}
                 bordered
@@ -206,24 +228,26 @@ export default function SwipeScreen() {
                 accessibilityLabel="Stage for deletion"
               />
               <IconButton
+                name="arrow.up"
+                onPress={() => deckRef.current?.skip()}
+                size={56}
+                iconSize={22}
+                background={c.card}
+                color={c.tint}
+                bordered
+                shadow
+                accessibilityLabel="Look at this photo later"
+              />
+              <IconButton
                 name="heart.fill"
                 onPress={() => deckRef.current?.swipeKeep()}
-                size={72}
-                iconSize={30}
+                size={68}
+                iconSize={28}
                 background={c.card}
                 color={c.keep}
                 bordered
                 shadow
                 accessibilityLabel="Keep"
-              />
-              <IconButton
-                name="square.grid.2x2.fill"
-                onPress={() => router.back()}
-                size={52}
-                iconSize={20}
-                background={c.bgGrouped}
-                color={c.textSecondary}
-                accessibilityLabel="Back to albums"
               />
             </GlassBar>
           </View>
@@ -337,9 +361,9 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 2 },
   deckWrap: {
     flex: 1,
-    marginHorizontal: Spacing.xl,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
   },
   actionsWrap: {
     paddingHorizontal: Spacing.xl,
