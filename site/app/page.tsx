@@ -2,7 +2,7 @@ import Nav from "@/components/Nav";
 import Reveal from "@/components/Reveal";
 import Pile from "@/components/Pile";
 import Carousel from "@/components/Carousel";
-import { Heart, Close, ArrowUp, Apple } from "@/components/icons";
+import { Heart, Close, ArrowUp, Apple, Download } from "@/components/icons";
 
 export default function Home() {
   return (
@@ -93,10 +93,30 @@ export default function Home() {
               <p>No uploads. No account. No tracking. Photoslide reads your library on-device
                 to deal the deck — and that&apos;s where everything stays.</p>
             </Reveal>
+            <Reveal delay={140}>
+              <div style={{
+                margin: "40px auto 32px",
+                width: "120px",
+                height: "120px",
+                borderRadius: "28px",
+                overflow: "hidden",
+                boxShadow: "0 20px 50px -10px rgba(240, 38, 90, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.15) inset",
+                display: "inline-block",
+                background: "var(--void-2)"
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="Photoslide App Icon" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            </Reveal>
             <Reveal delay={160}>
-              <a className="btn btn-primary" href="#" style={{ fontSize: "1.05rem", padding: "1em 1.8em" }}>
-                <Apple size={20} /> Download on the App Store
-              </a>
+              <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
+                <a className="btn btn-primary" href="#" style={{ fontSize: "1.05rem", padding: "1em 1.8em" }}>
+                  <Apple size={20} /> Download on the App Store
+                </a>
+                <a className="btn btn-line" href="https://nightly.link/shethshlok/photo-swipe/workflows/build-ipa.yml/main/Sweep-unsigned-ipa" style={{ fontSize: "1.05rem", padding: "1em 1.8em" }}>
+                  <Download size={20} /> Download Unsigned IPA
+                </a>
+              </div>
             </Reveal>
             <Reveal className="priv" delay={200}>
               <span><span className="dot" /> 100% on-device</span>

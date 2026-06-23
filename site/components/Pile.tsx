@@ -3,15 +3,15 @@
 import { useCallback, useRef, useState } from "react";
 import { Heart, Close, ArrowUp } from "./icons";
 
-type Photo = { img: string; place: string; date: string; gb: number };
+type Photo = { img: string; place: string; date: string; mb: number };
 
 const PHOTOS: Photo[] = [
-  { img: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=640&q=75", place: "Yosemite Valley", date: "AUG 14 2025 · 6:43 PM", gb: 3.1 },
-  { img: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=640&q=75", place: "Screenshot", date: "MAY 02 2024 · 11:08 AM", gb: 1.4 },
-  { img: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=640&q=75", place: "Golden, the dog", date: "MAR 21 2025 · 9:02 AM", gb: 2.6 },
-  { img: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=640&q=75", place: "Big Sur Coast", date: "JUN 09 2025 · 5:11 PM", gb: 4.2 },
-  { img: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=640&q=75", place: "Lake Tahoe", date: "JUL 30 2024 · 7:55 PM", gb: 3.8 },
-  { img: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=640&q=75", place: "Blurry, again", date: "FEB 11 2025 · 8:20 PM", gb: 1.1 },
+  { img: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=640&q=75", place: "Yosemite Valley", date: "AUG 14 2025 · 6:43 PM", mb: 3.1 },
+  { img: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=640&q=75", place: "Screenshot", date: "MAY 02 2024 · 11:08 AM", mb: 1.4 },
+  { img: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=640&q=75", place: "Golden, the dog", date: "MAR 21 2025 · 9:02 AM", mb: 2.6 },
+  { img: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=640&q=75", place: "Big Sur Coast", date: "JUN 09 2025 · 5:11 PM", mb: 4.2 },
+  { img: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=640&q=75", place: "Lake Tahoe", date: "JUL 30 2024 · 7:55 PM", mb: 3.8 },
+  { img: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=640&q=75", place: "Blurry, again", date: "FEB 11 2025 · 8:20 PM", mb: 1.1 },
 ];
 
 /* deterministic scatter so the stack reads as a pile (no hydration mismatch) */
@@ -47,7 +47,7 @@ export default function Pile() {
       setDrag({ ...off, active: false });
       window.setTimeout(() => {
         if (dir === "keep") setKept((k) => k + 1);
-        if (dir === "clear") { setCleared((c) => c + 1); setReclaimed((r) => +(r + cur.gb).toFixed(1)); }
+        if (dir === "clear") { setCleared((c) => c + 1); setReclaimed((r) => +(r + cur.mb).toFixed(1)); }
         setIndex((i) => i + 1);
         setDrag({ x: 0, y: 0, active: false });
         setFlying(null);
@@ -99,7 +99,7 @@ export default function Pile() {
           <div className="pile-done">
             <div>
               <div className="big">Empty.</div>
-              <div className="gb">+{reclaimed.toFixed(1)} GB back</div>
+              <div className="gb">+{reclaimed.toFixed(1)} MB back</div>
               <p>Kept {kept} · cleared {cleared}. That&apos;s the whole pile.</p>
               <button className="btn btn-line" onClick={reset}>Sort it again</button>
             </div>
@@ -109,7 +109,7 @@ export default function Pile() {
             const realIdx = index + i;
             const isFront = i === 0;
             const s = SCATTER[realIdx % SCATTER.length];
-            const depth = remaining.length - 1 - i; // 0 = front
+            const depth = i; // 0 = front
             const base = `translate(${s.x}px, ${s.y + depth * -2}px) scale(${1 - depth * 0.02}) rotate(${s.r}deg)`;
             const frontTransform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
             return (
@@ -119,7 +119,7 @@ export default function Pile() {
                 style={{
                   transform: isFront ? frontTransform : base,
                   opacity: isFront && flying ? 0 : 1,
-                  zIndex: 10 + i,
+                  zIndex: 10 + (remaining.length - i),
                 }}
                 {...(isFront
                   ? {
@@ -159,7 +159,7 @@ export default function Pile() {
         <span className="sep" />
         <span className="t clear"><b>{cleared}</b> cleared</span>
         <span className="sep" />
-        <span className="t"><b>{reclaimed.toFixed(1)}</b> GB</span>
+        <span className="t"><b>{reclaimed.toFixed(1)}</b> MB</span>
       </div>
 
       {!done && (
