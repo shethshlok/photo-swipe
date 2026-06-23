@@ -19,6 +19,7 @@ import Animated, {
   Extrapolation,
   interpolate,
   runOnJS,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -36,7 +37,7 @@ const SWIPE_THRESHOLD = SCREEN_W * 0.26;
 const SKIP_THRESHOLD = SCREEN_H * 0.14;
 const FLING_X = SCREEN_W * 1.6;
 const FLING_Y = SCREEN_H * 1.1;
-const VISIBLE = 3; // cards rendered in the stack for depth
+const VISIBLE = 3; // visible depths in the stack (0,1,2); one extra is rendered as a buffer
 
 export type Decision = 'keep' | 'delete' | 'skip';
 
@@ -105,13 +106,18 @@ function usePlace(asset: Asset | null): string | undefined {
 
 type Tag = { icon: SFSymbol; label: string };
 
-/** iPhone Photos-style metadata. `place` (resolved asynchronously) is appended when present. */
-function metaTags(asset: Asset, place?: string): Tag[] {
+function dateTimeTags(asset: Asset): Tag[] {
   const tags: Tag[] = [];
   const date = formatDate(asset.creationTime);
   if (date) tags.push({ icon: 'calendar', label: date });
   const time = formatTime(asset.creationTime);
   if (time) tags.push({ icon: 'clock', label: time });
+  return tags;
+}
+
+/** Tags for the full-screen viewer (date, time, and location together). */
+function metaTags(asset: Asset, place?: string): Tag[] {
+  const tags = dateTimeTags(asset);
   if (place) tags.push({ icon: 'mappin.and.ellipse', label: place });
   return tags;
 }
@@ -130,6 +136,8 @@ function MetaTags({ tags, color, chip }: { tags: Tag[]; color: string; chip: str
     </View>
   );
 }
+
+const CHIP = 'rgba(255,255,255,0.18)';
 
 /**
  * Just the two image layers, keyed purely on the photo URI (a stable string). Because the
@@ -160,22 +168,139 @@ const CardImages = memo(function CardImages({ uri }: { uri: string }) {
   );
 });
 
-/** A card's full visual stack: stable images + scrim + (location-dependent) meta tags. */
+/** A card's visual stack: stable images, location pinned top-center, date/time bottom-center. */
 const CardFace = memo(function CardFace({ asset, place }: { asset: Asset; place?: string }) {
   return (
     <>
       <CardImages uri={asset.uri} />
 
-      {/* Caption scrim */}
+      {/* Location — top center */}
+      {place ? (
+        <>
+          <LinearGradient
+            colors={['rgba(0,0,0,0.5)', 'transparent'] as const}
+            style={styles.topScrim}
+            pointerEvents="none"
+          />
+          <View style={styles.topMeta} pointerEvents="none">
+            <MetaTags tags={[{ icon: 'mappin.and.ellipse', label: place }]} color="#fff" chip={CHIP} />
+          </View>
+        </>
+      ) : null}
+
+      {/* Date + time — bottom center */}
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.0)', 'rgba(0,0,0,0.7)'] as const}
-        locations={[0, 0.55, 1]}
+        colors={['transparent', 'rgba(0,0,0,0.7)'] as const}
+        locations={[0.45, 1]}
         style={styles.scrim}
+        pointerEvents="none"
       />
-      <View style={styles.caption}>
-        <MetaTags tags={metaTags(asset, place)} color="#fff" chip="rgba(255,255,255,0.18)" />
+      <View style={styles.bottomMeta} pointerEvents="none">
+        <MetaTags tags={dateTimeTags(asset)} color="#fff" chip={CHIP} />
       </View>
     </>
+  );
+});
+
+/**
+ * One card in the stack. Each card owns its transform via a worklet so the *outgoing* card can
+ * be pinned off-screen (by id, on the UI thread) the instant we reset the shared drag offset —
+ * otherwise the just-swiped card briefly snaps back to center and flashes the previous photo.
+ */
+const DeckCard = memo(function DeckCard({
+  asset,
+  depth,
+  isTop,
+  place,
+  c,
+  tx,
+  ty,
+  leavingId,
+  exitX,
+  exitY,
+}: {
+  asset: Asset;
+  depth: number;
+  isTop: boolean;
+  place?: string;
+  c: ReturnType<typeof useColors>;
+  tx: SharedValue<number>;
+  ty: SharedValue<number>;
+  leavingId: SharedValue<string>;
+  exitX: SharedValue<number>;
+  exitY: SharedValue<number>;
+}) {
+  const id = asset.id;
+
+  const cardStyle = useAnimatedStyle(() => {
+    // This card is leaving: hold it at its exit position regardless of the live drag offset.
+    if (leavingId.value === id) {
+      const rot = exitX.value > 1 ? 11 : exitX.value < -1 ? -11 : 0;
+      return {
+        transform: [
+          { translateX: exitX.value },
+          { translateY: exitY.value },
+          { rotate: `${rot}deg` },
+        ],
+      };
+    }
+    if (isTop) {
+      const rotate = interpolate(tx.value, [-SCREEN_W, 0, SCREEN_W], [-11, 0, 11], Extrapolation.CLAMP);
+      return {
+        transform: [{ translateX: tx.value }, { translateY: ty.value }, { rotate: `${rotate}deg` }],
+      };
+    }
+    // Cards underneath rise toward the top as the current card is dragged away.
+    const p = interpolate(Math.abs(tx.value), [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP);
+    if (depth === 1) return { transform: [{ scale: 0.94 + 0.06 * p }, { translateY: 14 - 14 * p }] };
+    return { transform: [{ scale: 0.88 + 0.06 * p }, { translateY: 28 - 14 * p }] };
+  });
+
+  const keepStyle = useAnimatedStyle(() => ({
+    opacity: isTop ? interpolate(tx.value, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP) : 0,
+  }));
+  const deleteStyle = useAnimatedStyle(() => ({
+    opacity: isTop ? interpolate(tx.value, [-SWIPE_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP) : 0,
+  }));
+  const skipStyle = useAnimatedStyle(() => ({
+    opacity: isTop ? interpolate(ty.value, [-SKIP_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP) : 0,
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents={isTop ? 'auto' : 'none'}
+      style={[styles.card, cardShadow(c.shadow), { backgroundColor: c.card }, cardStyle]}
+    >
+      <CardFace asset={asset} place={place} />
+
+      {isTop && (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.badge, styles.badgeLeft, { borderColor: c.keep }, keepStyle]}
+          >
+            <AppText variant="title2" rounded color={c.keep}>
+              KEEP
+            </AppText>
+          </Animated.View>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.badge, styles.badgeRight, { borderColor: c.delete }, deleteStyle]}
+          >
+            <AppText variant="title2" rounded color={c.delete}>
+              DELETE
+            </AppText>
+          </Animated.View>
+          <Animated.View pointerEvents="none" style={[styles.badgeTopWrap, skipStyle]}>
+            <View style={[styles.badgeBox, { borderColor: c.tint }]}>
+              <AppText variant="title2" rounded color={c.tint}>
+                LATER
+              </AppText>
+            </View>
+          </Animated.View>
+        </>
+      )}
+    </Animated.View>
   );
 });
 
@@ -190,6 +315,11 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
 
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
+  // Identity + resting position of the card currently animating off, so it stays put while the
+  // shared drag offset resets to 0 for the new top card. Empty string = nothing leaving.
+  const leavingId = useSharedValue('');
+  const exitX = useSharedValue(0);
+  const exitY = useSharedValue(0);
 
   // Refs keep the gesture callbacks stable while always reading fresh values.
   const indexRef = useRef(0);
@@ -199,35 +329,45 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
   const cb = useRef({ onKeep, onDelete, onUndoDelete, onSkip, onUndoSkip, onDecision, onIndexChange });
   cb.current = { onKeep, onDelete, onUndoDelete, onSkip, onUndoSkip, onDecision, onIndexChange };
 
-  const advance = useCallback((dir: number) => {
-    const i = indexRef.current;
-    const asset = assetsRef.current[i];
-    if (!asset) return;
-    if (dir > 0) cb.current.onKeep(asset);
-    else cb.current.onDelete(asset);
-    history.current.push({ asset, decision: dir > 0 ? 'keep' : 'delete' });
-    indexRef.current = i + 1;
-    setIndex(i + 1);
-    cb.current.onIndexChange?.(i + 1);
-    tx.value = 0;
-    ty.value = 0;
-  }, [tx, ty]);
+  const advance = useCallback(
+    (dir: number) => {
+      const i = indexRef.current;
+      const asset = assetsRef.current[i];
+      if (!asset) return;
+      if (dir > 0) cb.current.onKeep(asset);
+      else cb.current.onDelete(asset);
+      history.current.push({ asset, decision: dir > 0 ? 'keep' : 'delete' });
+      // Pin the outgoing card off-screen, then reset the offset for the incoming top card.
+      leavingId.value = asset.id;
+      exitX.value = dir * FLING_X;
+      exitY.value = ty.value;
+      indexRef.current = i + 1;
+      setIndex(i + 1);
+      cb.current.onIndexChange?.(i + 1);
+      tx.value = 0;
+      ty.value = 0;
+    },
+    [tx, ty, leavingId, exitX, exitY],
+  );
 
   const fireHaptic = useCallback((dir: number) => {
     cb.current.onDecision?.(dir > 0 ? 'keep' : 'delete');
   }, []);
 
-  // Defer the current card: it slides up off-screen, then the parent moves it to the back of
-  // the queue. Index is unchanged — the next card simply takes its place.
+  // Defer the current card: it slides up off-screen, the parent moves it to the back of the
+  // queue, and the next card takes its place. Index is unchanged.
   const advanceSkip = useCallback(() => {
     const i = indexRef.current;
     const asset = assetsRef.current[i];
     if (!asset) return;
+    leavingId.value = asset.id;
+    exitX.value = 0;
+    exitY.value = -FLING_Y;
     cb.current.onSkip(asset);
     history.current.push({ asset, decision: 'skip' });
     tx.value = 0;
     ty.value = 0;
-  }, [tx, ty]);
+  }, [tx, ty, leavingId, exitX, exitY]);
 
   const flingUp = useCallback(() => {
     cb.current.onDecision?.('skip');
@@ -256,6 +396,7 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
   const undo = useCallback(() => {
     if (history.current.length === 0) return;
     const last = history.current.pop()!;
+    leavingId.value = ''; // un-pin so a restored card isn't stuck off-screen
 
     if (last.decision === 'skip') {
       // Index didn't move on skip, so restore the photo at the current top position.
@@ -277,15 +418,19 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
     ty.value = -30;
     tx.value = withSpring(0, { damping: 18, stiffness: 160 });
     ty.value = withSpring(0, { damping: 18, stiffness: 160 });
-  }, [tx, ty]);
+  }, [tx, ty, leavingId]);
 
-  useImperativeHandle(ref, () => ({
-    swipeKeep: () => fling(1),
-    swipeDelete: () => fling(-1),
-    skip: () => flingUp(),
-    undo,
-    canUndo: () => history.current.length > 0,
-  }), [fling, flingUp, undo]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      swipeKeep: () => fling(1),
+      swipeDelete: () => fling(-1),
+      skip: () => flingUp(),
+      undo,
+      canUndo: () => history.current.length > 0,
+    }),
+    [fling, flingUp, undo],
+  );
 
   const gesture = useMemo(() => {
     const pan = Gesture.Pan()
@@ -321,66 +466,18 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
     return Gesture.Race(tap, pan);
   }, [fling, flingUp, openViewer, tx, ty]);
 
-  // ---- Animated styles ----
-  const topCardStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(
-      tx.value,
-      [-SCREEN_W, 0, SCREEN_W],
-      [-11, 0, 11],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [
-        { translateX: tx.value },
-        { translateY: ty.value },
-        { rotate: `${rotate}deg` },
-      ],
-    };
-  });
-
-  const keepOverlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tx.value, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
-  }));
-  const deleteOverlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tx.value, [-SWIPE_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP),
-  }));
-  const skipOverlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(ty.value, [-SKIP_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP),
-  }));
-
-  // Depth styles for the cards underneath; they rise as the top card is dragged.
-  const secondCardStyle = useAnimatedStyle(() => {
-    const p = interpolate(
-      Math.abs(tx.value),
-      [0, SWIPE_THRESHOLD],
-      [0, 1],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [{ scale: 0.94 + 0.06 * p }, { translateY: 14 - 14 * p }],
-    };
-  });
-  const thirdCardStyle = useAnimatedStyle(() => {
-    const p = interpolate(
-      Math.abs(tx.value),
-      [0, SWIPE_THRESHOLD],
-      [0, 1],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [{ scale: 0.88 + 0.06 * p }, { translateY: 28 - 14 * p }],
-    };
-  });
-
-  // Render one extra card beyond the visible depths. The buffer card sits directly behind the
-  // bottom visible card (same transform) so it's fully occluded — meaning the next card to
-  // appear was already mounted and decoded a swipe earlier, never popping/flashing into view.
+  // Render one extra card beyond the visible depths as an occluded buffer, so the next card to
+  // appear was already mounted and decoded a swipe earlier (no pop/flash).
   const window = assets.slice(index, index + VISIBLE + 1);
   const topPlace = usePlace(window[0] ?? null);
 
-  // Preload upcoming photos into the memory cache so a card never mounts with an undecoded
-  // image — that blank-frame-then-image pop (showing the card background for a frame) is the
-  // swipe flicker. Prefetch a few ahead of what's visible so they're ready before they mount.
+  // Once the new arrangement has committed, the outgoing card is gone — un-pin it so a future
+  // undo can bring it (or any card with that id) back into view.
+  useEffect(() => {
+    leavingId.value = '';
+  }, [index, assets, leavingId]);
+
+  // Preload upcoming photos into the memory cache so a card never mounts with an undecoded image.
   useEffect(() => {
     const ahead = assets.slice(index, index + VISIBLE + 4).map((a) => a.uri);
     if (ahead.length) Image.prefetch(ahead, 'memory-disk');
@@ -388,73 +485,28 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
 
   return (
     <View style={styles.deck}>
-      {/* One stable GestureDetector for the whole stack. Keeping every card a plain
-          Animated.View (instead of swapping the top one into a GestureDetector) means a card
-          promoted from depth to top is never remounted — which is what caused the swipe flicker. */}
+      {/* One stable GestureDetector for the whole stack so promoted cards are never remounted. */}
       <GestureDetector gesture={gesture}>
         <View style={StyleSheet.absoluteFill}>
           {/* Render back-to-front so the current card sits on top. */}
           {window
             .map((asset, i) => ({ asset, depth: i }))
             .reverse()
-            .map(({ asset, depth }) => {
-              const isTop = depth === 0;
-              // depth 2 (bottom visible) and depth 3 (occluded buffer) share a transform, so the
-              // buffer is hidden directly behind it and slides into view seamlessly on advance.
-              const depthStyle =
-                depth === 1 ? secondCardStyle : depth >= 2 ? thirdCardStyle : undefined;
-
-              return (
-                <Animated.View
-                  key={asset.id}
-                  pointerEvents={isTop ? 'auto' : 'none'}
-                  style={[
-                    styles.card,
-                    cardShadow(c.shadow),
-                    { backgroundColor: c.card },
-                    isTop ? topCardStyle : depthStyle,
-                  ]}
-                >
-                  <CardFace asset={asset} place={isTop ? topPlace : undefined} />
-
-                  {isTop && (
-                    <>
-                      <Animated.View
-                        pointerEvents="none"
-                        style={[styles.badge, styles.badgeLeft, { borderColor: c.keep }, keepOverlayStyle]}
-                      >
-                        <AppText variant="title2" rounded color={c.keep}>
-                          KEEP
-                        </AppText>
-                      </Animated.View>
-                      <Animated.View
-                        pointerEvents="none"
-                        style={[
-                          styles.badge,
-                          styles.badgeRight,
-                          { borderColor: c.delete },
-                          deleteOverlayStyle,
-                        ]}
-                      >
-                        <AppText variant="title2" rounded color={c.delete}>
-                          DELETE
-                        </AppText>
-                      </Animated.View>
-                      <Animated.View
-                        pointerEvents="none"
-                        style={[styles.badgeTopWrap, skipOverlayStyle]}
-                      >
-                        <View style={[styles.badgeBox, { borderColor: c.tint }]}>
-                          <AppText variant="title2" rounded color={c.tint}>
-                            LATER
-                          </AppText>
-                        </View>
-                      </Animated.View>
-                    </>
-                  )}
-                </Animated.View>
-              );
-            })}
+            .map(({ asset, depth }) => (
+              <DeckCard
+                key={asset.id}
+                asset={asset}
+                depth={depth}
+                isTop={depth === 0}
+                place={depth === 0 ? topPlace : undefined}
+                c={c}
+                tx={tx}
+                ty={ty}
+                leavingId={leavingId}
+                exitX={exitX}
+                exitY={exitY}
+              />
+            ))}
         </View>
       </GestureDetector>
 
@@ -515,7 +567,7 @@ function FullScreenViewer({
               style={[styles.viewerBottomScrim, { paddingBottom: insets.bottom + Spacing.xl }]}
               pointerEvents="none"
             >
-              <MetaTags tags={metaTags(asset, place)} color="#fff" chip="rgba(255,255,255,0.18)" />
+              <MetaTags tags={metaTags(asset, place)} color="#fff" chip={CHIP} />
             </LinearGradient>
           </>
         )}
@@ -542,22 +594,38 @@ const styles = StyleSheet.create({
   fillTint: {
     backgroundColor: 'rgba(0,0,0,0.28)',
   },
+  topScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: '26%',
+  },
   scrim: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '45%',
+    height: '40%',
   },
-  caption: {
+  topMeta: {
     position: 'absolute',
-    left: Spacing.xl,
-    right: Spacing.xl,
+    top: Spacing.lg,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    alignItems: 'center',
+  },
+  bottomMeta: {
+    position: 'absolute',
     bottom: Spacing.xl,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    alignItems: 'center',
   },
   tagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: Spacing.xs,
   },
   tag: {
@@ -587,7 +655,7 @@ const styles = StyleSheet.create({
   },
   badgeTopWrap: {
     position: 'absolute',
-    top: Spacing.xxl,
+    top: 72,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -627,5 +695,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xxl,
     paddingHorizontal: Spacing.xl,
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
 });
