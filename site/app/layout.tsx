@@ -36,13 +36,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${outfit.variable} ${plusJakartaSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
         {/* Mark JS-capable before paint so reveal animations are opt-in, never hiding
             content if scripts fail to run. */}
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
       </head>
-      <body className={`${outfit.variable} ${plusJakartaSans.variable} ${GeistMono.variable}`}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

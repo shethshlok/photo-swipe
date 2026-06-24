@@ -84,9 +84,9 @@ img { display: block; max-width: 100%; }
 .nav { position: sticky; top: 0; z-index: 100; transition: background 0.3s, border-color 0.3s; border-bottom: 1px solid transparent; }
 .nav.scrolled { background: rgba(14, 13, 16, 0.7); backdrop-filter: blur(18px) saturate(160%); border-bottom-color: var(--line); }
 .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 70px; }
-.brand { display: flex; align-items: center; gap: 11px; font-family: var(--display); font-weight: 700; font-size: 1.18rem; letter-spacing: -0.02em; }
-.brand img { width: 30px; height: 30px; border-radius: 8px; box-shadow: 0 2px 12px -2px rgba(240,38,90,0.6); }
-.brand small { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.22em; color: var(--faint); align-self: center; text-transform: uppercase; }
+.brand { display: flex; align-items: center; gap: 12px; font-family: var(--display); font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; }
+.brand img { width: 36px; height: 36px; }
+.brand small { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.22em; color: var(--faint); align-self: center; text-transform: uppercase; }
 .nav .btn { padding: 0.55em 1.15em; font-size: 0.9rem; }
 
 /* Hero ------------------------------------------------------------------------ */

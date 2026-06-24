@@ -13,6 +13,8 @@ jobs:
   build:
     runs-on: macos-15
     timeout-minutes: 50
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -75,15 +77,28 @@ jobs:
           set -eo pipefail
           APP=$(ls -d "$RUNNER_TEMP/app.xcarchive/Products/Applications/"*.app | head -1)
           echo "Packaging: $APP"
-          rm -rf "$RUNNER_TEMP/Payload" "$RUNNER_TEMP/Sweep.ipa"
+          rm -rf "$RUNNER_TEMP/Payload" "$RUNNER_TEMP/Photoslide.ipa"
           mkdir -p "$RUNNER_TEMP/Payload"
           cp -R "$APP" "$RUNNER_TEMP/Payload/"
-          (cd "$RUNNER_TEMP" && zip -qry Sweep.ipa Payload)
-          ls -lh "$RUNNER_TEMP/Sweep.ipa"
+          (cd "$RUNNER_TEMP" && zip -qry Photoslide.ipa Payload)
+          ls -lh "$RUNNER_TEMP/Photoslide.ipa"
 
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Sweep-unsigned-ipa
-          path: ${{ runner.temp }}/Sweep.ipa
+          name: Photoslide-unsigned-ipa
+          path: ${{ runner.temp }}/Photoslide.ipa
           if-no-files-found: error
+
+      - name: Publish IPA to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete existing rolling release (if any) so the tag stays fresh
+          gh release delete latest-build --yes --cleanup-tag 2>/dev/null || true
+          # Create a new pre-release with the .ipa attached directly
+          gh release create latest-build \
+            "$RUNNER_TEMP/Photoslide.ipa" \
+            --title "Latest Unsigned Build" \
+            --notes "Unsigned IPA from commit $(git rev-parse --short HEAD). Install via AltStore or SideStore." \
+            --prerelease
