@@ -229,16 +229,38 @@ function Header({
       </View>
 
       {limited && (
-        <Pressable
-          onPress={() => MediaLibrary.presentPermissionsPickerAsync?.()}
-          style={[styles.limitedBanner, { backgroundColor: c.bgGrouped, borderColor: c.separator }]}
-        >
-          <SymbolView name="exclamationmark.circle.fill" size={18} tintColor={c.tint} />
-          <AppText variant="footnote" color={c.text} style={{ flex: 1 }}>
-            You've allowed access to only some photos. Tap to select more.
+        <View style={[styles.limitedBanner, { backgroundColor: c.bgGrouped, borderColor: c.separator }]}>
+          <View style={styles.limitedHead}>
+            <SymbolView name="lock.fill" size={18} tintColor={c.tint} />
+            <AppText variant="subhead" color={c.text} style={{ flex: 1 }}>
+              Limited access
+            </AppText>
+          </View>
+          <AppText variant="footnote" color={c.textSecondary}>
+            You've only shared some photos, so Photoslide can't show your albums or collections. To
+            swipe through a whole album, allow access to all photos.
           </AppText>
-          <SymbolView name="chevron.right" size={12} tintColor={c.textSecondary} />
-        </Pressable>
+          <Pressable
+            onPress={() => Linking.openSettings()}
+            style={({ pressed }) => [
+              styles.limitedBtn,
+              { backgroundColor: c.tint, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <AppText variant="footnote" color={c.onAccent}>
+              Allow All Photos
+            </AppText>
+          </Pressable>
+          <Pressable
+            onPress={() => MediaLibrary.presentPermissionsPickerAsync?.()}
+            hitSlop={8}
+            style={({ pressed }) => [styles.limitedLink, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <AppText variant="footnote" color={c.textSecondary}>
+              Or select more individual photos
+            </AppText>
+          </Pressable>
+        </View>
       )}
     </View>
   );
@@ -341,14 +363,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   limitedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: Spacing.lg,
   },
+  limitedHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  limitedBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.pill,
+    marginTop: 2,
+  },
+  limitedLink: { alignSelf: 'flex-start', paddingVertical: 2 },
   tile: { flex: 1 },
   tileInner: {
     aspectRatio: 0.82,
